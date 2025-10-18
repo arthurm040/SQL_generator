@@ -1,0 +1,42 @@
+[project]
+name = "SQL_generator"
+version = "0.1.0"
+description = "Dynamically generate SQL queries"
+authors = [
+    {name = "Arthur Murat", email = ""},
+]
+dependencies = []
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.scripts]
+lint = {composite = [
+    "black --line-length 120 --preview src/",
+    "ruff check --select B,D,E,F,I --ignore D103,D100 --line-length 120 --fix --show-fixes src/"
+]}
+
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "black>=25.9.0",
+    "ruff>=0.14.1",
+]
+
+[tool.black]
+line-length = 120
+preview = true
+
+[tool.ruff]
+line-length = 120
+lint.select = ["B", "D", "E", "F", "I"]
+lint.ignore = ["D103", "D100"]
+fix = true
+show-fixes = true
