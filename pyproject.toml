@@ -22,6 +22,7 @@ lint = {composite = [
     "black --line-length 120 --preview src/ tests/",
     "ruff check --select B,D,E,F,I --ignore D103,D100,D415,D400,D101 --line-length 120 --fix --show-fixes src/ tests/"
 ]}
+test = "python -m unittest discover -v -s tests -p '*test*.py'"
 
 
 [tool.pdm.dev-dependencies]
