@@ -20,24 +20,30 @@ distribution = true
 [tool.pdm.scripts]
 lint = {composite = [
     "black --line-length 120 --preview src/ tests/",
-    "ruff check --select B,D,E,F,I --ignore D103,D100,D415,D400,D101 --line-length 120 --fix --show-fixes src/ tests/"
+    "ruff check --select B,D,E,F,I --ignore D103,D100,D415,D400,D101,D203,D213 --line-length 120 --fix --show-fixes src/ tests/"
 ]}
-test = "python -m unittest discover -v -s tests -p '*test*.py'"
+test = {composite = [
+    "coverage run -m unittest discover -v -s tests -p '*test*.py'",
+    "coverage report"
+]}
 
-
-[tool.pdm.dev-dependencies]
-dev = [
-    "black>=25.9.0",
-    "ruff>=0.14.1",
-]
 
 [tool.black]
 line-length = 120
 preview = true
 
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*"]
+
 [tool.ruff]
 line-length = 120
-lint.select = ["B", "D", "E", "F", "I"]
-lint.ignore = ["D103", "D100", "D415"]
 fix = true
 show-fixes = true
+
+[dependency-groups]
+dev = [
+    "black>=25.9.0",
+    "ruff>=0.14.1",
+    "coverage>=7.11.0",
+]
