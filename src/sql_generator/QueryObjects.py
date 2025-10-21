@@ -7,22 +7,27 @@ aggregate functions.
 
 Key Components:
     Table: Represents database tables with relationship definitions
+
     SelectColumn: Handles SELECT clause columns with aggregation and aliasing
+
     Join/ViaStep: Manages table joins including complex via chains
+
     WhereCondition: Represents WHERE clause conditions with logical operators
+
     GroupBy/OrderBy: Column references for GROUP BY and ORDER BY clauses
 
 Enums:
     JoinType: SQL join types (INNER, LEFT, RIGHT, FULL OUTER)
+
     AggFunction: Aggregate functions (COUNT, SUM, AVG, MIN, MAX, COUNT_DISTINCT)
+
     Operator: Comparison operators for WHERE clauses (=, <, >, LIKE, IN, etc.)
 
 Example:
     >>> from sql_generator.QueryObjects import Table, TableJoinAttribute, SelectColumn, AggFunction
-    >>>
     >>> # Define table relationships
     >>> users = Table("users", joins={"orders": TableJoinAttribute("id", "user_id")})
-    >>>
+
     >>> # Create SELECT columns with aggregation
     >>> name_col = SelectColumn("name", table="users")
     >>> count_col = SelectColumn("id", table="orders", agg_function=AggFunction.COUNT, alias="order_count")
@@ -58,8 +63,11 @@ class JoinType(Enum):
 
     Join Types:
         INNER: Returns only rows that have matching values in both tables
+
         LEFT: Returns all rows from left table, matching rows from right table (NULL if no match)
+
         RIGHT: Returns all rows from right table, matching rows from left table (NULL if no match)
+
         FULL: Returns all rows from both tables, with NULLs where no match exists
 
     Examples:
@@ -88,16 +96,62 @@ class AggFunction(Enum):
 
     Supported functions:
         COUNT: Count rows or non-null values
+
         SUM: Sum numeric values
+
         AVG: Calculate average of numeric values
+
         MIN: Find minimum value
+
         MAX: Find maximum value
+
         COUNT_DISTINCT: Count unique non-null values
 
     Examples:
-        >>> SelectColumn("id", table="orders", agg_function=AggFunction.COUNT)
-        >>> SelectColumn("total", table="orders", agg_function=AggFunction.SUM)
-        >>> SelectColumn("category", table="products", agg_function=AggFunction.COUNT_DISTINCT)
+        Basic aggregate functions:
+
+        >>> from sql_generator import SelectColumn, AggFunction
+        >>> col = SelectColumn("id", table="orders", agg_function=AggFunction.COUNT)
+        >>> # Generates: COUNT(ord.id)
+
+        >>> col = SelectColumn("total", table="orders", agg_function=AggFunction.SUM, alias="revenue")
+        >>> # Generates: SUM(ord.total) AS revenue
+
+        >>> col = SelectColumn("price", table="products", agg_function=AggFunction.AVG, alias="avg_price")
+        >>> # Generates: AVG(pro.price) AS avg_price
+
+        >>> col = SelectColumn("category", table="products", agg_function=AggFunction.COUNT_DISTINCT)
+        >>> # Generates: COUNT(DISTINCT pro.category)
+
+        Min/Max functions:
+
+        >>> col = SelectColumn("created_at", table="orders", agg_function=AggFunction.MIN, alias="first_order")
+        >>> # Generates: MIN(ord.created_at) AS first_order
+
+        >>> col = SelectColumn("total", table="orders", agg_function=AggFunction.MAX, alias="largest_order")
+        >>> # Generates: MAX(ord.total) AS largest_order
+
+        Complete query:
+
+        >>> from sql_generator import QueryBuilder, Table, TableJoinAttribute
+        >>> users = Table('users', joins={'orders': TableJoinAttribute('id', 'user_id')})
+        >>> orders = Table('orders')
+        >>> qb = QueryBuilder(
+        ...     [users, orders],
+        ...     [
+        ...         'users.name',
+        ...         SelectColumn('id', table='orders', agg_function=AggFunction.COUNT, alias='order_count'),
+        ...         SelectColumn('total', table='orders', agg_function=AggFunction.SUM, alias='total_spent')
+        ...     ],
+        ...     joins=['orders'],
+        ...     group_by=['users.id', 'users.name']
+        ... )
+        >>> sql, params = qb.build()
+        >>> print(sql)
+        SELECT use.name, COUNT(ord.id) AS order_count, SUM(ord.total) AS total_spent
+        FROM users use
+        INNER JOIN orders ord ON use.id = ord.user_id
+        GROUP BY use.id, use.name
 
     """
 
@@ -117,18 +171,25 @@ class Operator(Enum):
 
     Comparison Operators:
         EQ: Equal to (=) - exact match
+
         NE: Not equal to (!=) - excludes exact matches
+
         LT: Less than (<) - numeric/date comparison
+
         LE: Less than or equal (<=) - numeric/date comparison
+
         GT: Greater than (>) - numeric/date comparison
+
         GE: Greater than or equal (>=) - numeric/date comparison
 
     Pattern Matching:
         LIKE: Case-sensitive pattern matching with wildcards (% and _)
+
         ILIKE: Case-insensitive pattern matching
 
     List Operations:
         IN: Value exists in list of options
+
         NOT_IN: Value does not exist in list of options
 
     Range Operations:
@@ -136,6 +197,7 @@ class Operator(Enum):
 
     Null Checks:
         IS_NULL: Column value is NULL (no value parameter needed)
+
         IS_NOT_NULL: Column value is not NULL (no value parameter needed)
 
     Examples:
@@ -150,10 +212,10 @@ class Operator(Enum):
         >>> WhereCondition("status", Operator.IN, ["active", "pending"])  # status IN ('active', 'pending')
 
         >>> # Range queries:
-        >>> # WhereCondition("age", Operator.BETWEEN, [18, 65])  # age BETWEEN 18 AND 65
+        >>> WhereCondition("age", Operator.BETWEEN, [18, 65])  # age BETWEEN 18 AND 65
 
         >>> # Null checks:
-        >>> # WhereCondition("deleted_at", Operator.IS_NULL)   # deleted_at IS NULL
+        >>> WhereCondition("deleted_at", Operator.IS_NULL)   # deleted_at IS NULL
 
     """
 
@@ -476,27 +538,33 @@ class WhereCondition:
         logical_operator: How to join with previous condition ("AND" or "OR", defaults to "AND")
 
     Examples:
-        >>> # Basic equality condition:
+        Basic equality condition:
+
         >>> WhereCondition("age", Operator.GE, 18, table="users")
         >>> # → users.age >= 18
 
-        >>> # String pattern matching:
+        String pattern matching:
+
         >>> WhereCondition("name", Operator.LIKE, "%john%", table="users")
         >>> # → users.name LIKE '%john%'
 
-        >>> # List membership:
+        List membership:
+
         >>> WhereCondition("status", Operator.IN, ["active", "pending"])
         >>> # → status IN ('active', 'pending')
 
-        >>> # Null checks:
+        Null checks:
+
         >>> WhereCondition("deleted_at", Operator.IS_NULL)
         >>> # → deleted_at IS NULL
 
-        >>> # Range conditions:
+        Range conditions:
+
         >>> WhereCondition("price", Operator.BETWEEN, [10.0, 100.0], table="products")
         >>> # → products.price BETWEEN 10.0 AND 100.0
 
-        >>> # With logical operators:
+        With logical operators:
+
         >>> WhereCondition("age", Operator.LT, 65, logical_operator="OR")
         >>> # → OR age < 65
 

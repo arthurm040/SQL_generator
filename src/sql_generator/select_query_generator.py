@@ -21,6 +21,132 @@ _operator_map = {
 
 
 class QueryBuilder:
+    """SQL query builder using constructor-based API.
+
+    Creates dynamic SQL queries with automatic table aliasing and relationship management.
+    Eliminates complex if/else logic for dynamic WHERE clauses and JOINs. Perfect for APIs,
+    admin interfaces, reporting systems, and any application that needs dynamic SQL generation.
+
+    Features:
+        - Constructor-based API (no method chaining required)
+        - Automatic table aliasing with conflict resolution
+        - Django-style WHERE conditions with logical operators
+        - Flexible JOIN system with via chains
+        - Parameterized queries for SQL injection protection
+        - Hybrid input support (strings or objects)
+
+    Examples:
+        Basic query generation:
+
+        >>> from sql_generator import QueryBuilder, Table
+        >>> qb = QueryBuilder([Table('users')], ['users.name', 'users.email'])
+        >>> sql, params = qb.build()
+        >>> print(sql)
+        SELECT use.name, use.email
+        FROM users use
+        >>> print(params)
+        []
+
+        Query with WHERE conditions and parameters:
+
+        >>> qb = QueryBuilder(
+        ...     [Table('users')],
+        ...     ['users.name'],
+        ...     where={'users.active__eq': True, 'users.age__gt': 18}
+        ... )
+        >>> sql, params = qb.build()
+        >>> print(sql)
+        SELECT use.name
+        FROM users use
+        WHERE use.active = %s AND use.age > %s
+        >>> print(params)
+        [True, 18]
+
+        Query with JOINs:
+
+        >>> from sql_generator import TableJoinAttribute
+        >>> users = Table('users', joins={'orders': TableJoinAttribute('id', 'user_id')})
+        >>> orders = Table('orders')
+        >>> qb = QueryBuilder([users, orders], ['users.name', 'orders.total'], joins=['orders'])
+        >>> sql, params = qb.build()
+        >>> print(sql)
+        SELECT use.name, ord.total
+        FROM users use
+        INNER JOIN orders ord ON use.id = ord.user_id
+
+        Complex query with aggregation and all clauses:
+
+        >>> from sql_generator import SelectColumn, AggFunction
+        >>> qb = QueryBuilder(
+        ...     [users, orders],
+        ...     ['users.name', SelectColumn('COUNT(*)', alias='order_count')],
+        ...     joins=['orders'],
+        ...     where={'users.active__eq': True, 'orders.total__gt': 100},
+        ...     group_by=['users.id', 'users.name'],
+        ...     order_by=['order_count DESC'],
+        ...     limit=50
+        ... )
+        >>> sql, params = qb.build()
+        >>> print(sql)
+        SELECT use.name, COUNT(*) AS order_count
+        FROM users use
+        INNER JOIN orders ord ON use.id = ord.user_id
+        WHERE use.active = %s AND ord.total > %s
+        GROUP BY use.id, use.name
+        ORDER BY order_count DESC
+        LIMIT 50
+        >>> print(params)
+        [True, 100]
+
+        Logical operators in WHERE conditions:
+
+        >>> qb = QueryBuilder(
+        ...     [Table('users')],
+        ...     ['users.name'],
+        ...     where={'users.active__eq': True, 'or__users.role__eq': 'admin'}
+        ... )
+        >>> sql, params = qb.build()
+        >>> print(sql)
+        SELECT use.name
+        FROM users use
+        WHERE use.active = %s OR use.role = %s
+        >>> print(params)
+        [True, 'admin']
+
+        Dynamic query generation for APIs:
+
+        >>> def get_users(filters=None, include_orders=False, sort_by=None):
+        ...     tables = [Table('users')]
+        ...     select_cols = ['users.name', 'users.email']
+        ...     joins = []
+        ...
+        ...     if include_orders:
+        ...         tables.append(Table('orders'))
+        ...         select_cols.append('orders.total')
+        ...         joins.append('orders')
+        ...
+        ...     return QueryBuilder(
+        ...         tables=tables,
+        ...         select=select_cols,
+        ...         joins=joins or None,
+        ...         where=filters,
+        ...         order_by=[sort_by] if sort_by else None
+        ...     ).build()
+        >>>
+        >>> sql, params = get_users(
+        ...     filters={'users.active__eq': True},
+        ...     include_orders=True,
+        ...     sort_by='users.name ASC'
+        ... )
+
+    Note:
+        - Table aliases are auto-generated (first 3+ characters) with conflict resolution
+        - All string inputs are normalized to objects during initialization
+        - First table in tables list becomes the FROM clause
+        - JOIN deduplication removes exact duplicate JOIN strings while preserving order
+
+    """
+
     def __init__(
         self,
         tables: list[Table],
@@ -33,66 +159,17 @@ class QueryBuilder:
     ):
         """Initialize QueryBuilder with SQL query components.
 
-        Creates a SQL query builder using constructor-based API. All string inputs are
-        automatically normalized to their corresponding object types during initialization.
-        Table aliases are auto-generated (first 3+ characters) with conflict resolution.
-
         Args:
-            tables: List of Table objects defining the database tables and their relationships.
-                    The first table becomes the FROM clause. All table names must be unique.
-            select: List of columns to select. Supports strings and SelectColumn objects.
-            joins: Optional list of joins to include. Supports strings and Join objects.
-            where: Optional WHERE conditions. Supports dict format or list of WhereCondition objects.
-            group_by: Optional GROUP BY columns. Supports strings and GroupBy objects.
-            order_by: Optional ORDER BY columns. Supports strings and OrderBy objects.
-            limit: Optional maximum number of rows to return. Must be positive integer.
+            tables: List of Table objects defining database tables and relationships.
+            select: List of columns to select (strings or SelectColumn objects).
+            joins: Optional list of joins (strings or Join objects).
+            where: Optional WHERE conditions (dict or list of WhereCondition objects).
+            group_by: Optional GROUP BY columns (strings or GroupBy objects).
+            order_by: Optional ORDER BY columns (strings or OrderBy objects).
+            limit: Optional maximum number of rows to return.
 
         Raises:
-            ValueError: If duplicate table names found, invalid limit value, duplicate aliases,
-                       invalid WHERE key format, unknown operators, or invalid ORDER BY format.
-
-        Examples:
-            Basic query:
-            >>> table = [Table('users'), Table('orders')]
-            >>> select_columns = ['users.name', 'orders.total']
-            >>> qb = QueryBuilder(tables, select_columns)
-
-            String select formats:
-            >>> select_column = ['users.name', 'COUNT(*)', 'UPPER(users.email)']
-
-            SelectColumn objects:
-            >>> select_column = [SelectColumn('name', table='users'), SelectColumn('COUNT(*)', alias='total')]
-
-            String joins:
-            >>> query_joins = ['orders', 'left join order_items']
-
-            Join objects:
-            >>> query_joins = [Join('orders'), Join('products', via_steps=[ViaStep('orders')])]
-
-            Dict WHERE conditions:
-            >>> where_clause = {'users.id__eq': 1, 'or__users.age__gt': 18}
-
-            WhereCondition objects:
-            >>> where_clause = [WhereCondition('id', Operator.EQ, 1, table='users')]
-
-            String GROUP BY:
-            >>> group_by_clause = ['users.department', 'users.role']
-
-            GroupBy objects:
-            >>> group_by_clause = [GroupBy('department', table='users')]
-
-            String ORDER BY:
-            >>> order_by_clause = ['users.name', 'orders.total DESC']
-
-            OrderBy objects:
-            >>> order_by_clause = [OrderBy('name', table='users', direction='ASC')]
-
-        Note:
-            - Table aliases are auto-generated starting with 3 characters, extending if conflicts occur
-            - User-defined table aliases take precedence over auto-generated ones
-            - All string inputs are normalized to objects during initialization
-            - JOIN deduplication removes exact duplicate JOIN strings while preserving order
-            - First table in tables list becomes the FROM clause
+            ValueError: If duplicate table names, invalid limit, or invalid WHERE format.
 
         """
         self._validate_unique_table_names(tables)
@@ -417,11 +494,14 @@ class QueryBuilder:
         Examples:
             Basic query generation:
 
+            >>> from sql_generator import QueryBuilder, Table
             >>> qb = QueryBuilder([Table('users')], ['users.name', 'users.email'])
             >>> sql, params = qb.build()
             >>> print(sql)
             SELECT use.name, use.email
             FROM users use
+            >>> print(params)
+            []
 
             Query with parameters:
 
@@ -431,12 +511,28 @@ class QueryBuilder:
             ...     where={'users.active__eq': True, 'users.age__gt': 18}
             ... )
             >>> sql, params = qb.build()
+            >>> print(sql)
+            SELECT use.name
+            FROM users use
+            WHERE use.active = %s AND use.age > %s
             >>> print(params)
             [True, 18]
 
             Complex query with all clauses:
 
-            >>> sql, params = complex_qb.build()
+            >>> from sql_generator import TableJoinAttribute, SelectColumn
+            >>> users = Table('users', joins={'orders': TableJoinAttribute('id', 'user_id')})
+            >>> orders = Table('orders')
+            >>> qb = QueryBuilder(
+            ...     [users, orders],
+            ...     ['users.name', SelectColumn('COUNT(*)', alias='order_count')],
+            ...     joins=['orders'],
+            ...     where={'users.active__eq': True, 'orders.total__gt': 100},
+            ...     group_by=['users.id', 'users.name'],
+            ...     order_by=['order_count DESC'],
+            ...     limit=50
+            ... )
+            >>> sql, params = qb.build()
             >>> print(sql)
             SELECT use.name, COUNT(*) AS order_count
             FROM users use
@@ -445,10 +541,19 @@ class QueryBuilder:
             GROUP BY use.id, use.name
             ORDER BY order_count DESC
             LIMIT 50
+            >>> print(params)
+            [True, 100]
 
+            Using the generated SQL with database connections:
+
+            >>> import psycopg
+            >>> sql, params = qb.build()
+            >>> cursor.execute(sql, params)
+            >>> results = cursor.fetchall()
 
         Note:
             - Parameters use %s placeholders for PostgreSQL/MySQL compatibility
+            - For SQLite, replace %s with ? in the returned SQL string
             - JOIN clauses are deduplicated while preserving order
             - Table aliases are automatically applied throughout the query
             - All clauses follow standard SQL order: SELECT, FROM, JOIN, WHERE, GROUP BY, ORDER BY, LIMIT

@@ -12,6 +12,15 @@ SQL Query Builder Documentation
 
    api
 
+Installation
+============
+
+.. code-block:: bash
+
+   pip install sql-query-builder-py
+
+**Requirements:** Python 3.12+
+
 Welcome to SQL Query Builder
 ============================
 
@@ -197,6 +206,110 @@ Quick Start Examples
        include_orders=True,
        sort_by='users.name ASC'
    )
+
+Strings vs Objects - Flexible Input
+-----------------------------------
+
+The library supports both string and object inputs for all components, giving you flexibility to choose the approach that fits your use case.
+
+**SELECT Columns**
+
+.. code-block:: python
+
+   # Using strings (simple and concise)
+   qb = QueryBuilder([users], ['users.name', 'users.email', 'COUNT(*)'])
+
+   # Using objects (more control and type safety)
+   from sql_generator import SelectColumn, AggFunction
+   qb = QueryBuilder([users], [
+       SelectColumn('name', table='users'),
+       SelectColumn('email', table='users'),
+       SelectColumn('id', agg_function=AggFunction.COUNT, alias='total_users')
+   ])
+
+**WHERE Conditions**
+
+.. code-block:: python
+
+   # Using dictionary format (Django-style, concise)
+   qb = QueryBuilder([users], ['users.name'], where={
+       'users.active__eq': True,
+       'users.age__gte': 18,
+       'or__users.role__eq': 'admin'
+   })
+
+   # Using objects (explicit control over logic)
+   from sql_generator import WhereCondition, Operator
+   qb = QueryBuilder([users], ['users.name'], where=[
+       WhereCondition('active', Operator.EQ, True, table='users'),
+       WhereCondition('age', Operator.GE, 18, table='users'),
+       WhereCondition('role', Operator.EQ, 'admin', table='users', logical_operator='OR')
+   ])
+
+**JOIN Operations**
+
+.. code-block:: python
+
+   # Using strings (simple joins)
+   qb = QueryBuilder([users, orders], ['users.name', 'orders.total'],
+                     joins=['orders'])
+
+   # Using objects (complex via chains with custom join types)
+   from sql_generator import Join, ViaStep, JoinType
+   qb = QueryBuilder([users, orders, order_items, products],
+                     ['users.name', 'products.name'], joins=[
+       Join('products', via_steps=[
+           ViaStep('orders', JoinType.LEFT),
+           ViaStep('order_items', JoinType.INNER)
+       ])
+   ])
+
+**ORDER BY Clauses**
+
+.. code-block:: python
+
+   # Using strings (quick and readable)
+   qb = QueryBuilder([users], ['users.name'],
+                     order_by=['users.name ASC', 'users.created_at DESC'])
+
+   # Using objects (explicit control)
+   from sql_generator import OrderBy
+   qb = QueryBuilder([users], ['users.name'], order_by=[
+       OrderBy('name', table='users', direction='ASC'),
+       OrderBy('created_at', table='users', direction='DESC')
+   ])
+
+**Mixed Approach**
+
+.. code-block:: python
+
+   # You can mix strings and objects in the same query
+   qb = QueryBuilder(
+       tables=[users, orders],
+       select=[
+           'users.name',  # String
+           SelectColumn('total', AggFunction.SUM, table='orders', alias='revenue')  # Object
+       ],
+       joins=['orders'],  # String
+       where={'users.active__eq': True},  # Dictionary
+       order_by=['revenue DESC']  # String
+   )
+
+**When to Use Each Approach**
+
+**Use Strings When:**
+- Building simple, straightforward queries
+- Rapid prototyping and development
+- You prefer concise, readable code
+- Working with standard SQL patterns
+
+**Use Objects When:**
+- You need explicit control over query components
+- Building complex queries with custom logic
+- You want full type safety and IDE support
+- Creating reusable query components
+- Working with complex JOIN chains or aggregations
+
 
 Why Choose This Library?
 ------------------------

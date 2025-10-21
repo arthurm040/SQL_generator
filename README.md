@@ -7,7 +7,7 @@ Dynamic SQL query builder for Python that **eliminates complex if/else logic** f
 ## Installation
 
 ```bash
-pip install sql-query-builder
+pip install sql-query-builder-py
 ```
 
 **Requirements:** Python 3.12+
