@@ -36,6 +36,7 @@ Note:
 import re
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 def _resolve_column_with_alias(column: str, table: str | None, table_aliases: dict[str, str]) -> str:
@@ -62,17 +63,17 @@ class JoinType(Enum):
         FULL: Returns all rows from both tables, with NULLs where no match exists
 
     Examples:
-        # Inner join - only users with orders
-        ViaStep("orders", JoinType.INNER)
+        >>> # Inner join - only users with orders
+        >>> ViaStep("orders", JoinType.INNER)
 
-        # Left join - all users, with order data if available
-        ViaStep("orders", JoinType.LEFT)
+        >>> # Left join - all users, with order data if available
+        >>> ViaStep("orders", JoinType.LEFT)
 
-        # Right join - all orders, with user data if available
-        ViaStep("users", JoinType.RIGHT)
+        >>> # Right join - all orders, with user data if available
+        >>> ViaStep("users", JoinType.RIGHT)
 
-        # Full outer join - all users and all orders
-        ViaStep("orders", JoinType.FULL)
+        >>> # Full outer join - all users and all orders
+        >>> ViaStep("orders", JoinType.FULL)
 
     """
 
@@ -94,9 +95,9 @@ class AggFunction(Enum):
         COUNT_DISTINCT: Count unique non-null values
 
     Examples:
-        SelectColumn("id", table="orders", agg_function=AggFunction.COUNT)
-        SelectColumn("total", table="orders", agg_function=AggFunction.SUM)
-        SelectColumn("category", table="products", agg_function=AggFunction.COUNT_DISTINCT)
+        >>> SelectColumn("id", table="orders", agg_function=AggFunction.COUNT)
+        >>> SelectColumn("total", table="orders", agg_function=AggFunction.SUM)
+        >>> SelectColumn("category", table="products", agg_function=AggFunction.COUNT_DISTINCT)
 
     """
 
@@ -138,21 +139,21 @@ class Operator(Enum):
         IS_NOT_NULL: Column value is not NULL (no value parameter needed)
 
     Examples:
-        # Equality and comparison
-        WhereCondition("age", Operator.EQ, 25)          # age = 25
-        WhereCondition("price", Operator.GT, 100.0)     # price > 100.0
+        >>> # Equality and comparison:
+        >>> WhereCondition("age", Operator.EQ, 25)          # age = 25
+        >>> WhereCondition("price", Operator.GT, 100.0)     # price > 100.0
 
-        # Pattern matching
-        WhereCondition("name", Operator.LIKE, "%john%")  # name LIKE '%john%'
+        >>> # Pattern matching:
+        >>> WhereCondition("name", Operator.LIKE, "%john%")  # name LIKE '%john%'
 
-        # List membership
-        WhereCondition("status", Operator.IN, ["active", "pending"])  # status IN ('active', 'pending')
+        >>> # List membership:
+        >>> WhereCondition("status", Operator.IN, ["active", "pending"])  # status IN ('active', 'pending')
 
-        # Range queries
-        WhereCondition("age", Operator.BETWEEN, [18, 65])  # age BETWEEN 18 AND 65
+        >>> # Range queries:
+        >>> # WhereCondition("age", Operator.BETWEEN, [18, 65])  # age BETWEEN 18 AND 65
 
-        # Null checks
-        WhereCondition("deleted_at", Operator.IS_NULL)   # deleted_at IS NULL
+        >>> # Null checks:
+        >>> # WhereCondition("deleted_at", Operator.IS_NULL)   # deleted_at IS NULL
 
     """
 
@@ -181,11 +182,11 @@ class TableJoinAttribute:
         table_name: Override target table name if different from join key
 
     Examples:
-        # Direct join: users.id = orders.user_id
-        TableJoinAttribute("id", "user_id")
+        >>> # Direct join: users.id = orders.user_id
+        >>> TableJoinAttribute("id", "user_id")
 
-        # Join with table name override
-        TableJoinAttribute("id", "user_id", table_name="addresses")
+        >>> # Join with table name override
+        >>> TableJoinAttribute("id", "user_id", table_name="addresses")
 
     """
 
@@ -217,15 +218,15 @@ class Table:
         joins: Dictionary mapping join keys to Join definitions
 
     Examples:
-        Table("users", joins={
-            "orders": TableJoinAttribute("id", "user_id"),
-            "profiles": TableJoinAttribute("id", "user_id")
-        })
+        >>> Table("users", joins={
+        >>> "orders": TableJoinAttribute("id", "user_id"),
+        >>> "profiles": TableJoinAttribute("id", "user_id")
+        >>> })
 
-        # With custom primary key
-        Table("products", primary_key="product_id", joins={
-            "categories": TableJoinAttribute("category_id", "id")
-        })
+        >>> # With custom primary key
+        >>> Table("products", primary_key="product_id", joins={
+        >>> "categories": TableJoinAttribute("category_id", "id")
+        >>> })
 
     """
 
@@ -247,20 +248,20 @@ class SelectColumn:
         distinct: Whether to apply DISTINCT to the column (optional)
 
     Examples:
-        # Simple column
-        SelectColumn("name", table="users")
+        >>> # Simple column
+        >>> SelectColumn("name", table="users")
 
-        # Column with alias
-        SelectColumn("created_at", table="orders", alias="order_date")
+        >>> # Column with alias
+        >>> SelectColumn("created_at", table="orders", alias="order_date")
 
-        # Aggregate function
-        SelectColumn("id", table="orders", agg_function=AggFunction.COUNT, alias="total_orders")
+        >>> # Aggregate function
+        >>> SelectColumn("id", table="orders", agg_function=AggFunction.COUNT, alias="total_orders")
 
-        # Distinct values
-        SelectColumn("status", table="users", distinct=True)
+        >>> # Distinct values
+        >>> SelectColumn("status", table="users", distinct=True)
 
-        # Expression without table
-        SelectColumn("NOW()", alias="current_time")
+        >>> # Expression without table
+        >>> SelectColumn("NOW()", alias="current_time")
 
     """
 
@@ -309,18 +310,18 @@ class ViaStep:
         join_type: Type of SQL join to use for this step (defaults to INNER)
 
     Examples:
-        # Simple via step with default INNER join
-        ViaStep("orders")
+        >>> # Simple via step with default INNER join:
+        >>> ViaStep("orders")
 
-        # Via step with explicit LEFT join
-        ViaStep("order_items", JoinType.LEFT)
+        >>> # Via step with explicit LEFT join:
+        >>> ViaStep("order_items", JoinType.LEFT)
 
-        # Building a complete via chain: users -> orders -> order_items -> products
-        Join("products", via_steps=[
-            ViaStep("orders", JoinType.INNER),      # users INNER JOIN orders
-            ViaStep("order_items", JoinType.LEFT),  # orders LEFT JOIN order_items
-            ViaStep("products", JoinType.INNER)     # order_items INNER JOIN products
-        ])
+        >>> # Building a complete via chain:
+        >>> Join("products", via_steps=[
+        >>> ViaStep("orders", JoinType.INNER),      # users INNER JOIN orders
+        >>> ViaStep("order_items", JoinType.LEFT),  # orders LEFT JOIN order_items
+        >>> ViaStep("products", JoinType.INNER)     # order_items INNER JOIN products
+        >>> ])
 
     Note:
         ViaStep objects are typically used within Join objects to define multi-hop
@@ -391,14 +392,14 @@ class GroupBy(ColumnReference):
     recognition. Used to group query results by one or more columns.
 
     Examples:
-        # Group by table column
-        GroupBy("category", table="products")  # → pro.category
+        >>> # Group by table column
+        >>> GroupBy("category", table="products")  # → pro.category
 
-        # Group by column without table (assumes single table or unambiguous)
-        GroupBy("status")  # → status
+        >>> # Group by column without table (assumes single table or unambiguous)
+        >>> GroupBy("status")  # → status
 
-        # Group by SELECT alias (from aggregate or computed column)
-        GroupBy("total_orders")  # → total_orders (if it's a SELECT alias)
+        >>> # Group by SELECT alias (from aggregate or computed column)
+        >>> GroupBy("total_orders")  # → total_orders (if it's a SELECT alias)
 
     Note:
         Automatically resolves table aliases and recognizes SELECT column aliases.
@@ -422,17 +423,17 @@ class OrderBy(ColumnReference):
         direction: Sort direction - "ASC" (ascending) or "DESC" (descending)
 
     Examples:
-        # Order by table column, default ascending
-        OrderBy("name", table="users")  # → u.name ASC
+        >>> # Order by table column, default ascending
+        >>> OrderBy("name", table="users")  # → u.name ASC
 
-        # Order by column with explicit direction
-        OrderBy("price", table="products", direction="DESC")  # → pro.price DESC
+        >>> # Order by column with explicit direction
+        >>> OrderBy("price", table="products", direction="DESC")  # → pro.price DESC
 
-        # Order by SELECT alias
-        OrderBy("total_orders", direction="DESC")  # → total_orders DESC
+        >>> # Order by SELECT alias
+        >>> OrderBy("total_orders", direction="DESC")  # → total_orders DESC
 
-        # Case-insensitive direction (automatically normalized)
-        OrderBy("created_at", direction="desc")  # → created_at DESC
+        >>> # Case-insensitive direction (automatically normalized)
+        >>> OrderBy("created_at", direction="desc")  # → created_at DESC
 
     Note:
         Direction is automatically normalized to uppercase and validated.
@@ -475,40 +476,41 @@ class WhereCondition:
         logical_operator: How to join with previous condition ("AND" or "OR", defaults to "AND")
 
     Examples:
-        # Basic equality condition
-        WhereCondition("age", Operator.GE, 18, table="users")
-        # → users.age >= 18
+        >>> # Basic equality condition:
+        >>> WhereCondition("age", Operator.GE, 18, table="users")
+        >>> # → users.age >= 18
 
-        # String pattern matching
-        WhereCondition("name", Operator.LIKE, "%john%", table="users")
-        # → users.name LIKE '%john%'
+        >>> # String pattern matching:
+        >>> WhereCondition("name", Operator.LIKE, "%john%", table="users")
+        >>> # → users.name LIKE '%john%'
 
-        # List membership
-        WhereCondition("status", Operator.IN, ["active", "pending"])
-        # → status IN ('active', 'pending')
+        >>> # List membership:
+        >>> WhereCondition("status", Operator.IN, ["active", "pending"])
+        >>> # → status IN ('active', 'pending')
 
-        # Null checks
-        WhereCondition("deleted_at", Operator.IS_NULL)
-        # → deleted_at IS NULL
+        >>> # Null checks:
+        >>> WhereCondition("deleted_at", Operator.IS_NULL)
+        >>> # → deleted_at IS NULL
 
-        # Range conditions
-        WhereCondition("price", Operator.BETWEEN, [10.0, 100.0], table="products")
-        # → products.price BETWEEN 10.0 AND 100.0
+        >>> # Range conditions:
+        >>> WhereCondition("price", Operator.BETWEEN, [10.0, 100.0], table="products")
+        >>> # → products.price BETWEEN 10.0 AND 100.0
 
-        # With logical operators
-        WhereCondition("age", Operator.LT, 65, logical_operator="OR")
-        # → OR age < 65
+        >>> # With logical operators:
+        >>> WhereCondition("age", Operator.LT, 65, logical_operator="OR")
+        >>> # → OR age < 65
 
-        # From dict format examples:
-        # {"id__eq": 1} → WhereCondition("id", Operator.EQ, 1, logical_operator="AND")
-        # {"or__age__lt": 35} → WhereCondition("age", Operator.LT, 35, logical_operator="OR")
-        # {"and__status__in": ["active"]} → WhereCondition("status", Operator.IN, ["active"], logical_operator="AND")
+        >>> # From dict format examples:
+        >>> # {'id__eq': 1} → WhereCondition("id", Operator.EQ, 1, logical_operator="AND")
+        >>> # {'or__age__lt': 35} → WhereCondition("age", Operator.LT, 35, logical_operator="OR")
+        >>> # {'and__status__in': ["active"]} →
+        >>> WhereCondition("status", Operator.IN, ["active"], logical_operator="AND")
 
     """
 
     column: str
     operator: Operator
-    value: any = None
+    value: Any | None = None
     table: str | None = None
     logical_operator: str = "AND"
 

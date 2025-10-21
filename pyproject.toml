@@ -1,5 +1,5 @@
 [project]
-name = "SQL_generator"
+name = "sql-query-builder"
 version = "0.1.0"
 description = "Dynamically generate SQL queries"
 authors = [
@@ -46,4 +46,7 @@ dev = [
     "black>=25.9.0",
     "ruff>=0.14.1",
     "coverage>=7.11.0",
+    "sphinx==8.2.3",
+    "sphinx-rtd-theme==3.0.2",
+    "furo==2025.9.25",
 ]

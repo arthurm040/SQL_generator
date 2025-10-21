@@ -416,6 +416,7 @@ class QueryBuilder:
 
         Examples:
             Basic query generation:
+
             >>> qb = QueryBuilder([Table('users')], ['users.name', 'users.email'])
             >>> sql, params = qb.build()
             >>> print(sql)
@@ -423,6 +424,7 @@ class QueryBuilder:
             FROM users use
 
             Query with parameters:
+
             >>> qb = QueryBuilder(
             ...     [Table('users')],
             ...     ['users.name'],
@@ -433,6 +435,7 @@ class QueryBuilder:
             [True, 18]
 
             Complex query with all clauses:
+
             >>> sql, params = complex_qb.build()
             >>> print(sql)
             SELECT use.name, COUNT(*) AS order_count
@@ -442,6 +445,7 @@ class QueryBuilder:
             GROUP BY use.id, use.name
             ORDER BY order_count DESC
             LIMIT 50
+
 
         Note:
             - Parameters use %s placeholders for PostgreSQL/MySQL compatibility

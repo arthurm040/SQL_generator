@@ -1,16 +1,94 @@
 # SQL Generator
 
-Dynamic SQL query builder for Python that eliminates complex if/else logic for dynamic WHERE clauses and JOINs. Build queries using a constructor-based API with automatic table aliasing and relationship management.
+Dynamic SQL query builder for Python that **eliminates complex if/else logic** for dynamic WHERE clauses and JOINs. Build queries using a **constructor-based API** with automatic table aliasing and relationship management.
+
+**Perfect for APIs, admin interfaces, reporting systems, and any application that needs dynamic SQL generation.**
 
 ## Installation
 
 ```bash
-pip install sql-generator
+pip install sql-query-builder
 ```
 
 **Requirements:** Python 3.12+
 
-## Quick Start
+## The Problem This Solves
+
+**Before: Complex Dynamic Query Logic**
+
+```python
+# Traditional approach - messy and error-prone
+def build_user_query(include_orders=False, active_only=False, min_age=None):
+    sql = "SELECT u.name"
+    params = []
+    
+    if include_orders:
+        sql += ", o.total"
+        
+    sql += " FROM users u"
+    
+    if include_orders:
+        sql += " LEFT JOIN orders o ON u.id = o.user_id"
+        
+    conditions = []
+    if active_only:
+        conditions.append("u.active = %s")
+        params.append(True)
+        
+    if min_age:
+        conditions.append("u.age >= %s") 
+        params.append(min_age)
+        
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
+        
+    return sql, params
+```
+
+**After: Clean Constructor-Based API**
+
+```python
+from sql_generator import QueryBuilder, Table, TableJoinAttribute
+
+# Define relationships once
+users = Table('users', joins={
+    'orders': TableJoinAttribute('id', 'user_id')
+})
+orders = Table('orders')
+
+# Build queries declaratively
+def build_user_query(include_orders=False, active_only=False, min_age=None):
+    where_conditions = {}
+    if active_only:
+        where_conditions['users.active__eq'] = True
+    if min_age:
+        where_conditions['users.age__gte'] = min_age
+        
+    return QueryBuilder(
+        tables=[users, orders] if include_orders else [users],
+        select=['users.name'] + (['orders.total'] if include_orders else []),
+        joins=['orders'] if include_orders else None,
+        where=where_conditions or None
+    ).build()
+```
+
+## Key Features
+
+🚀 **Constructor-Based API** - Perfect for dynamic query generation - no method chaining required
+
+🏷️ **Automatic Table Aliasing** - Generates unique 3+ character aliases with conflict resolution
+
+🔗 **Flexible JOIN System** - Direct joins, via chains, and mixed join types
+
+🎯 **Django-Style WHERE Conditions** - `{'users.id__eq': 1, 'or__age__gt': 18}`
+
+🛡️ **Parameterized Queries** - Safe SQL with automatic parameter binding
+
+✨ **Hybrid Input Support** - Use strings or objects for all query components
+
+## Quick Start Examples
+
+### Basic Query
 
 ```python
 from sql_generator import QueryBuilder, Table, TableJoinAttribute
@@ -21,33 +99,104 @@ users = Table('users', joins={
 })
 orders = Table('orders')
 
-# Build query
+# Simple query
+qb = QueryBuilder([users], ['users.name', 'users.email'])
+sql, params = qb.build()
+
+print(sql)
+# SELECT use.name, use.email
+# FROM users use
+```
+
+### Query with JOINs and WHERE
+
+```python
+# Complex query with relationships
 qb = QueryBuilder(
     tables=[users, orders],
     select=['users.name', 'orders.total'],
     joins=['orders'],
-    where={'users.active__eq': True}
+    where={
+        'users.active__eq': True,
+        'orders.total__gte': 100
+    }
 )
 
 sql, params = qb.build()
 print(sql)
 # SELECT use.name, ord.total
 # FROM users use
-# INNER JOIN orders ord ON use.id = ord.user_id
-# WHERE use.active = %s
+# INNER JOIN orders ord ON use.id = ord.user_id  
+# WHERE use.active = %s AND ord.total >= %s
+
+print(params)
+# [True, 100]
 ```
 
-## Features
+### Advanced Features
 
-- **Constructor-based API** - Perfect for dynamic query generation
-- **Automatic table aliasing** - Generates unique 3+ character aliases with conflict resolution
-- **Where conditions Class** - Dynamic class that generates complex where clauses
-- **Django-style WHERE conditions** - `{'users.id__eq': 1, 'or__age__gt': 18}`
-- **Flexible JOIN system** - Direct joins, via chains, and mixed join types
-- **Hybrid input support** - Use strings or objects for all query components
-- **Parameterized queries** - Safe SQL with parameter binding
-- **JOIN deduplication** - Removes duplicate JOINs while preserving order
-- **Comprehensive validation** - Clear error messages for invalid configurations
+```python
+from sql_generator import SelectColumn, AggFunction, Join, ViaStep, JoinType
+
+# Aggregation with custom aliases
+qb = QueryBuilder(
+    tables=[users, orders],
+    select=[
+        'users.name',
+        SelectColumn('COUNT(*)', alias='order_count'),
+        SelectColumn('total', AggFunction.SUM, table='orders', alias='revenue')
+    ],
+    joins=['orders'],
+    where={'users.active__eq': True},
+    group_by=['users.id', 'users.name'],
+    order_by=['revenue DESC'],
+    limit=10
+)
+```
+
+### Dynamic Query Generation
+
+```python
+# Perfect for APIs and dynamic filtering
+def get_users(filters=None, include_orders=False, sort_by=None):
+    tables = [users]
+    select_cols = ['users.name', 'users.email']
+    joins = []
+    
+    if include_orders:
+        tables.append(orders)
+        select_cols.append('orders.total')
+        joins.append('orders')
+        
+    return QueryBuilder(
+        tables=tables,
+        select=select_cols,
+        joins=joins or None,
+        where=filters,
+        order_by=[sort_by] if sort_by else None
+    ).build()
+
+# Usage
+sql, params = get_users(
+    filters={'users.active__eq': True, 'or__users.role__eq': 'admin'},
+    include_orders=True,
+    sort_by='users.name ASC'
+)
+```
+
+## Why Choose This Library?
+
+✅ **Eliminates Complex Logic** - No more nested if/else for dynamic queries
+
+✅ **Type-Safe** - Catch errors at development time, not runtime  
+
+✅ **Readable Code** - Declarative syntax that's easy to understand
+
+✅ **Flexible** - Works with simple queries and complex multi-table joins
+
+✅ **Safe** - Built-in SQL injection protection with parameterized queries
+
+✅ **Maintainable** - Changes to table relationships update all queries automatically
 
 ## Usage Examples
 
@@ -73,21 +222,6 @@ order_items = Table('order_items', joins={
 products = Table('products')
 ```
 
-### Basic Queries
-
-```python
-# Simple SELECT
-qb = QueryBuilder([users], ['users.name', 'users.email'])
-sql, params = qb.build()
-
-# With WHERE conditions
-qb = QueryBuilder(
-    [users], 
-    ['users.name'],
-    where={'users.active__eq': True, 'users.age__gte': 18}
-)
-```
-
 ### JOIN Examples
 
 ```python
@@ -99,8 +233,6 @@ qb = QueryBuilder(
 )
 
 # Join objects with via chains
-from sql_generator import Join, ViaStep, JoinType
-
 qb = QueryBuilder(
     [users, orders, order_items, products],
     ['users.name', 'products.name'],
@@ -133,27 +265,6 @@ conditions = [
     WhereCondition('age', Operator.GTE, 18, table='users', logical_operator='OR'),
     WhereCondition('status', Operator.IN, ['active', 'pending'], table='orders')
 ]
-
-```
-
-### Advanced Features
-
-```python
-from sql_generator import SelectColumn, AggFunction, GroupBy, OrderBy
-
-# Aggregation with aliases
-qb = QueryBuilder(
-    [users, orders],
-    [
-        'users.name',
-        SelectColumn('COUNT(*)', alias='order_count'),
-        SelectColumn('total', AggFunction.SUM, table='orders', alias='total_sales')
-    ],
-    joins=['orders'],
-    group_by=['users.id', 'users.name'],
-    order_by=['total_sales DESC'],
-    limit=50
-)
 ```
 
 ## API Reference
@@ -185,7 +296,6 @@ QueryBuilder(
 | `is_null`, `is_not_null` | `IS NULL`, `IS NOT NULL` | `{'deleted_at__is_null': None}` |
 | `between` | `BETWEEN` | `{'age__between': [18, 65]}` |
 
-
 ### Key Classes
 
 - **Table** - Database table with optional join definitions
@@ -195,39 +305,6 @@ QueryBuilder(
 - **SelectColumn** - Column selection with aggregation and aliasing
 - **WhereCondition** - WHERE clause condition with logical operators
 - **GroupBy/OrderBy** - GROUP BY and ORDER BY clauses
-
-## Why This Library?
-
-**Perfect for dynamic queries** where you need to conditionally add JOINs, WHERE clauses, or change SELECT columns based on user input or application logic.
-
-**Replaces complex code like:**
-```python
-# Before: Complex if/else logic
-sql = "SELECT users.name"
-params = []
-if include_orders:
-    sql += ", orders.total"
-if join_orders:
-    sql += " FROM users u JOIN orders o ON u.id = o.user_id"
-else:
-    sql += " FROM users u"
-if active_only:
-    sql += " WHERE u.active = %s"
-    params.append(True)
-# ... more complex logic
-```
-
-**With simple constructor calls:**
-```python
-# After: Clean, declarative
-qb = QueryBuilder(
-    tables=[users, orders] if join_orders else [users],
-    select=['users.name'] + (['orders.total'] if include_orders else []),
-    joins=['orders'] if join_orders else None,
-    where={'users.active__eq': True} if active_only else None
-)
-sql, params = qb.build()
-```
 
 ## Contributing
 
