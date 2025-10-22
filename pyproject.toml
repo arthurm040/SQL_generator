@@ -1,6 +1,6 @@
 [project]
 name = "sql-query-builder-py"
-version = "0.1.0rc1"
+version = "0.1.0rc2"
 description = "Dynamically generate SQL queries"
 authors = [
     {name = "Arthur Murat", email = "test@email.org"},

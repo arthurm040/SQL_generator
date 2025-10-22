@@ -38,8 +38,7 @@ class QueryBuilder:
     Examples:
         Basic query generation:
 
-        >>> from sql_generator.QueryObjects import Table
-        >>> from sql_generator.select_query_generator QueryBuilder
+        >>> from sql_generator import QueryBuilder, Table
         >>> qb = QueryBuilder([Table('users')], ['users.name', 'users.email'])
         >>> sql, params = qb.build()
         >>> print(sql)
@@ -65,7 +64,7 @@ class QueryBuilder:
 
         Query with JOINs:
 
-        >>> from sql_generator.QueryObjects import TableJoinAttribute
+        >>> from sql_generator import TableJoinAttribute
         >>> users = Table('users', joins={'orders': TableJoinAttribute('id', 'user_id')})
         >>> orders = Table('orders')
         >>> qb = QueryBuilder([users, orders], ['users.name', 'orders.total'], joins=['orders'])
@@ -77,7 +76,7 @@ class QueryBuilder:
 
         Complex query with aggregation and all clauses:
 
-        >>> from sql_generator.QueryObjects import SelectColumn, AggFunction
+        >>> from sql_generator import SelectColumn, AggFunction
         >>> qb = QueryBuilder(
         ...     [users, orders],
         ...     ['users.name', SelectColumn('COUNT(*)', alias='order_count')],
@@ -495,8 +494,7 @@ class QueryBuilder:
         Examples:
             Basic query generation:
 
-            >>> from sql_generator.QueryObjects import Table
-            >>> from sql_generator.select_query_generator import QueryBuilder
+            >>> from sql_generator import QueryBuilder, Table
             >>> qb = QueryBuilder([Table('users')], ['users.name', 'users.email'])
             >>> sql, params = qb.build()
             >>> print(sql)
@@ -522,7 +520,7 @@ class QueryBuilder:
 
             Complex query with all clauses:
 
-            >>> from sql_generator.QueryObjects import TableJoinAttribute, SelectColumn
+            >>> from sql_generator import TableJoinAttribute, SelectColumn
             >>> users = Table('users', joins={'orders': TableJoinAttribute('id', 'user_id')})
             >>> orders = Table('orders')
             >>> qb = QueryBuilder(
