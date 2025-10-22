@@ -64,7 +64,8 @@ The Problem This Solves
 
 .. code-block:: python
 
-   from sql_generator import QueryBuilder, Table, TableJoinAttribute
+   from sql_generator.QueryObjects Table, TableJoinAttribute
+   from sql_generator.select_query_generator QueryBuilder
 
    # Define relationships once
    users = Table('users', joins={
@@ -115,7 +116,8 @@ Quick Start Examples
 
 .. code-block:: python
 
-   from sql_generator import QueryBuilder, Table, TableJoinAttribute
+   from sql_generator.QueryObjects import Table, TableJoinAttribute
+   from sql_generator.select_query_generator QueryBuilder
 
    # Define table relationships
    users = Table('users', joins={
@@ -160,7 +162,7 @@ Quick Start Examples
 
 .. code-block:: python
 
-   from sql_generator import SelectColumn, AggFunction, Join, ViaStep, JoinType
+   from sql_generator.QueryObjects import SelectColumn, AggFunction, Join, ViaStep, JoinType
 
    # Aggregation with custom aliases
    qb = QueryBuilder(
@@ -225,7 +227,7 @@ The library supports both string and object inputs for all components, giving yo
    qb = QueryBuilder([users], ['users.name', 'users.email', 'COUNT(*)'])
 
    # Using objects (more control and type safety)
-   from sql_generator import SelectColumn, AggFunction
+   from sql_generator.QueryObjects import SelectColumn, AggFunction
    qb = QueryBuilder([users], [
        SelectColumn('name', table='users'),
        SelectColumn('email', table='users'),
@@ -244,7 +246,7 @@ The library supports both string and object inputs for all components, giving yo
    })
 
    # Using objects (explicit control over logic)
-   from sql_generator import WhereCondition, Operator
+   from sql_generator.QueryObjects import WhereCondition, Operator
    qb = QueryBuilder([users], ['users.name'], where=[
        WhereCondition('active', Operator.EQ, True, table='users'),
        WhereCondition('age', Operator.GE, 18, table='users'),
@@ -266,7 +268,7 @@ The library supports both string and object inputs for all components, giving yo
                      joins=['orders'])
 
    # Using objects (complex via chains with custom join types)
-   from sql_generator import Join, ViaStep, JoinType
+   from sql_generator.QueryObjects import Join, ViaStep, JoinType
    qb = QueryBuilder([users, orders, order_items, products],
                      ['users.name', 'products.name'], joins=[
        Join('products', via_steps=[
@@ -284,7 +286,7 @@ The library supports both string and object inputs for all components, giving yo
                      order_by=['users.name ASC', 'users.created_at DESC'])
 
    # Using objects (explicit control)
-   from sql_generator import OrderBy
+   from sql_generator.QueryObjects import OrderBy
    qb = QueryBuilder([users], ['users.name'], order_by=[
        OrderBy('name', table='users', direction='ASC'),
        OrderBy('created_at', table='users', direction='DESC')

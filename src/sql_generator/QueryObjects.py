@@ -110,7 +110,7 @@ class AggFunction(Enum):
     Examples:
         Basic aggregate functions:
 
-        >>> from sql_generator import SelectColumn, AggFunction
+        >>> from sql_generator.QueryObjects import SelectColumn, AggFunction
         >>> col = SelectColumn("id", table="orders", agg_function=AggFunction.COUNT)
         >>> # Generates: COUNT(ord.id)
 
@@ -133,7 +133,8 @@ class AggFunction(Enum):
 
         Complete query:
 
-        >>> from sql_generator import QueryBuilder, Table, TableJoinAttribute
+        >>> from sql_generator.QueryObjects import Table, TableJoinAttribute
+        >>> from sql_generator.select_query_generator import QueryBuilder
         >>> users = Table('users', joins={'orders': TableJoinAttribute('id', 'user_id')})
         >>> orders = Table('orders')
         >>> qb = QueryBuilder(
