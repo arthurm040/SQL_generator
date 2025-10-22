@@ -168,7 +168,7 @@ Quick Start Examples
        select=[
            'users.name',
            SelectColumn('COUNT(*)', alias='order_count'),
-           SelectColumn('total', AggFunction.SUM, table='orders', alias='revenue')
+           SelectColumn('total', table='orders', agg_function=AggFunction.SUM, alias='revenue')
        ],
        joins=['orders'],
        where={'users.active__eq': True},
@@ -216,6 +216,11 @@ The library supports both string and object inputs for all components, giving yo
 
 .. code-block:: python
 
+   # Define tables first (needed for all examples)
+   from sql_generator import QueryBuilder, Table, TableJoinAttribute
+   users = Table('users', joins={'orders': TableJoinAttribute('id', 'user_id')})
+   orders = Table('orders')
+
    # Using strings (simple and concise)
    qb = QueryBuilder([users], ['users.name', 'users.email', 'COUNT(*)'])
 
@@ -224,7 +229,7 @@ The library supports both string and object inputs for all components, giving yo
    qb = QueryBuilder([users], [
        SelectColumn('name', table='users'),
        SelectColumn('email', table='users'),
-       SelectColumn('id', agg_function=AggFunction.COUNT, alias='total_users')
+       SelectColumn('id', table='users', agg_function=AggFunction.COUNT, alias='total_users')
    ])
 
 **WHERE Conditions**
@@ -249,6 +254,12 @@ The library supports both string and object inputs for all components, giving yo
 **JOIN Operations**
 
 .. code-block:: python
+
+   # Define all tables needed for examples
+   users = Table('users', joins={'orders': TableJoinAttribute('id', 'user_id')})
+   orders = Table('orders', joins={'order_items': TableJoinAttribute('id', 'order_id')})
+   order_items = Table('order_items', joins={'products': TableJoinAttribute('product_id', 'id')})
+   products = Table('products')
 
    # Using strings (simple joins)
    qb = QueryBuilder([users, orders], ['users.name', 'orders.total'],
@@ -288,7 +299,7 @@ The library supports both string and object inputs for all components, giving yo
        tables=[users, orders],
        select=[
            'users.name',  # String
-           SelectColumn('total', AggFunction.SUM, table='orders', alias='revenue')  # Object
+           SelectColumn('total', table='orders', agg_function=AggFunction.SUM, alias='revenue')  # Object
        ],
        joins=['orders'],  # String
        where={'users.active__eq': True},  # Dictionary

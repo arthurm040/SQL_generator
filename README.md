@@ -144,7 +144,7 @@ qb = QueryBuilder(
     select=[
         'users.name',
         SelectColumn('COUNT(*)', alias='order_count'),
-        SelectColumn('total', AggFunction.SUM, table='orders', alias='revenue')
+        SelectColumn('total', table='orders', agg_function=AggFunction.SUM, alias='revenue')
     ],
     joins=['orders'],
     where={'users.active__eq': True},
