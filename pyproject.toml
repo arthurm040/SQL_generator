@@ -1,9 +1,9 @@
 [project]
 name = "sql-query-builder-py"
-version = "0.1.0rc2"
+version = "0.1.0"
 description = "Dynamically generate SQL queries"
 authors = [
-    {name = "Arthur Murat", email = "test@email.org"},
+    {name = "Arthur Murat", email = "66724813+arthurm040@users.noreply.github.com"},
 ]
 dependencies = []
 requires-python = ">=3.12"
